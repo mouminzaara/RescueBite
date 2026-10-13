@@ -112,7 +112,7 @@ function App() {
   };
 
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen bg-[#F5EBDD] text-[#1C2A23] flex flex-col font-sans selection:bg-[#DDE8D8] selection:text-[#1E4E36]">
         <Navbar />
         

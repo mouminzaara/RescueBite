@@ -1,4 +1,4 @@
-name: RescueBite CI
+name: Deploy RescueBite to GitHub Pages
 
 on:
   push:
@@ -7,43 +7,20 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
-# Grant least-privilege permissions
+# Permissions required for GitHub Pages deployment
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
-# Cancel redundant in-progress workflow runs for the same branch or PR
+# Prevent concurrent deployments to GitHub Pages
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  frontend-ci:
-    name: Frontend CI (React + Vite)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    defaults:
-      run:
-        working-directory: frontend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies (clean install)
-        run: npm ci
-
-      - name: Build frontend production bundle
-        run: npm run build
-
   backend-ci:
     name: Backend CI (FastAPI + Python)
     runs-on: ubuntu-latest
@@ -88,3 +65,51 @@ jobs:
       - name: Run priority engine logic checks
         run: |
           python -c "from priority_engine import parse_expiry_minutes, calculate_urgency, calculate_priority_score; assert parse_expiry_minutes('25 min') == 25; assert calculate_urgency(20) == 'CRITICAL'; assert calculate_urgency(45) == 'HIGH'; assert calculate_urgency(90) == 'MEDIUM'; assert calculate_urgency(200) == 'LOW'; assert calculate_priority_score('CRITICAL', 20, 5) >= 95; print('✓ Priority engine pricing and urgency rules verified')"
+
+  build:
+    name: Frontend Build (React + Vite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (clean install)
+        run: npm ci
+
+      - name: Build Vite production bundle
+        run: npm run build
+
+      - name: Copy index.html to 404.html for GitHub Pages SPA routing
+        run: cp dist/index.html dist/404.html
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: [backend-ci, build]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -88,7 +88,7 @@ export default function FoodCard({ item, onSelect, onReserve }) {
           loading="lazy"
           onError={(e) => {
             e.currentTarget.onerror = null; // prevent infinite loop
-            e.currentTarget.src = '/images/bakery.jpg';
+            e.currentTarget.src = `${import.meta.env.BASE_URL}images/bakery.jpg`;
           }}
         />
         

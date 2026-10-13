@@ -1,4 +1,6 @@
 const API_BASE_URL = '/api';
+const BASE_PATH = import.meta.env.BASE_URL || '/';
+const prefixBase = (src) => (src && src.startsWith('/') && !src.startsWith('//') ? `${BASE_PATH}${src.slice(1)}` : src);
 
 /**
  * Parses expiry text into estimated remaining minutes for client UI calculations
@@ -55,8 +57,8 @@ export function normalizeFoodListing(item) {
     priorityScore: item.priority_score || (urgency === 'CRITICAL' ? 95 : urgency === 'HIGH' ? 80 : urgency === 'MEDIUM' ? 55 : 30),
     recommendedRescuePrice: recommendedPrice,
     image: (!item.image_url || item.image_url.includes('picsum.photos'))
-      ? (CATEGORY_FOOD_IMAGES[item.category] || '/images/bakery.jpg')
-      : item.image_url,
+      ? (CATEGORY_FOOD_IMAGES[item.category] || prefixBase('/images/bakery.jpg'))
+      : prefixBase(item.image_url),
     createdAt: item.created_at,
   };
 }
@@ -75,8 +77,8 @@ export function normalizeReservation(item) {
     pickupWindow: item.pickup_time || 'Today, 8:00 PM - 9:30 PM',
     status: item.status || 'CONFIRMED',
     image: (!item.image_url || item.image_url.includes('picsum.photos'))
-      ? '/images/bakery.jpg'
-      : item.image_url,
+      ? prefixBase('/images/bakery.jpg')
+      : prefixBase(item.image_url),
   };
 }
 
@@ -84,25 +86,25 @@ export function normalizeReservation(item) {
  * Curated high-reliability local food photography per restaurant
  */
 const RESTAURANT_FALLBACK_IMAGES = {
-  1: '/images/bakery.jpg',
-  2: '/images/indian.jpg',
-  3: '/images/cafe.jpg',
-  4: '/images/asian.jpg',
-  5: '/images/burger.jpg',
-  'rest-1': '/images/bakery.jpg',
-  'rest-2': '/images/indian.jpg',
-  'rest-3': '/images/cafe.jpg',
-  'rest-4': '/images/asian.jpg',
-  'rest-5': '/images/burger.jpg',
+  1: prefixBase('/images/bakery.jpg'),
+  2: prefixBase('/images/indian.jpg'),
+  3: prefixBase('/images/cafe.jpg'),
+  4: prefixBase('/images/asian.jpg'),
+  5: prefixBase('/images/burger.jpg'),
+  'rest-1': prefixBase('/images/bakery.jpg'),
+  'rest-2': prefixBase('/images/indian.jpg'),
+  'rest-3': prefixBase('/images/cafe.jpg'),
+  'rest-4': prefixBase('/images/asian.jpg'),
+  'rest-5': prefixBase('/images/burger.jpg'),
 };
 
 const CATEGORY_FOOD_IMAGES = {
-  Bakery: '/images/bakery.jpg',
-  Indian: '/images/indian.jpg',
-  Vegan: '/images/cafe.jpg',
-  Chinese: '/images/asian.jpg',
-  'Fast Food': '/images/burger.jpg',
-  Vegetarian: '/images/pizza.jpg',
+  Bakery: prefixBase('/images/bakery.jpg'),
+  Indian: prefixBase('/images/indian.jpg'),
+  Vegan: prefixBase('/images/cafe.jpg'),
+  Chinese: prefixBase('/images/asian.jpg'),
+  'Fast Food': prefixBase('/images/burger.jpg'),
+  Vegetarian: prefixBase('/images/pizza.jpg'),
 };
 
 /**
@@ -113,8 +115,8 @@ export function normalizeRestaurant(item) {
   const rawImg = item.image || item.image_url;
   // Replace broken/flaky picsum seed URLs with guaranteed local food photography
   const reliableImg = (!rawImg || rawImg.includes('picsum.photos'))
-    ? (RESTAURANT_FALLBACK_IMAGES[item.id] || '/images/bakery.jpg')
-    : (RESTAURANT_FALLBACK_IMAGES[item.id] || rawImg);
+    ? (RESTAURANT_FALLBACK_IMAGES[item.id] || prefixBase('/images/bakery.jpg'))
+    : (RESTAURANT_FALLBACK_IMAGES[item.id] || prefixBase(rawImg));
 
   return {
     id: item.id,

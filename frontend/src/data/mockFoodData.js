@@ -362,3 +362,19 @@ export const INITIAL_RESERVATIONS = [
     image: '/images/bakery.jpg',
   }
 ];
+
+// Ensure image paths resolve correctly with Vite base path on GitHub Pages
+const BASE_PATH = import.meta.env.BASE_URL || '/';
+const prefixBase = (src) => (src && src.startsWith('/') && !src.startsWith('//') ? `${BASE_PATH}${src.slice(1)}` : src);
+
+INITIAL_FOOD_ITEMS.forEach((item) => {
+  if (item.image) item.image = prefixBase(item.image);
+});
+INITIAL_RESTAURANTS.forEach((item) => {
+  if (item.image) item.image = prefixBase(item.image);
+  if (item.image_url) item.image_url = prefixBase(item.image_url);
+});
+INITIAL_RESERVATIONS.forEach((item) => {
+  if (item.image) item.image = prefixBase(item.image);
+});
+
