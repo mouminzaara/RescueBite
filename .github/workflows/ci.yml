@@ -1,0 +1,90 @@
+name: RescueBite CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Grant least-privilege permissions
+permissions:
+  contents: read
+
+# Cancel redundant in-progress workflow runs for the same branch or PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-ci:
+    name: Frontend CI (React + Vite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies (clean install)
+        run: npm ci
+
+      - name: Build frontend production bundle
+        run: npm run build
+
+  backend-ci:
+    name: Backend CI (FastAPI + Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Upgrade pip and install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Python syntax and bytecode compilation
+        run: python -m compileall .
+
+      - name: Verify core module imports with safe mock AWS environment
+        env:
+          AWS_DEFAULT_REGION: ap-south-1
+          AWS_REGION: ap-south-1
+          AWS_ACCESS_KEY_ID: mock-ci-access-key
+          AWS_SECRET_ACCESS_KEY: mock-ci-secret-key
+          DYNAMODB_RESTAURANTS_TABLE: RescueBite-Restaurants
+          DYNAMODB_FOOD_LISTINGS_TABLE: RescueBite-FoodListings
+          DYNAMODB_RESERVATIONS_TABLE: RescueBite-Reservations
+          LAMBDA_PRIORITY_FUNCTION: RescueBite-PriorityProcessor
+        run: |
+          python -c "import main, priority_engine, dynamodb_repository, schemas, models; print('✓ Core backend modules imported successfully')"
+
+      - name: Run priority engine logic checks
+        run: |
+          python -c "from priority_engine import parse_expiry_minutes, calculate_urgency, calculate_priority_score; assert parse_expiry_minutes('25 min') == 25; assert calculate_urgency(20) == 'CRITICAL'; assert calculate_urgency(45) == 'HIGH'; assert calculate_urgency(90) == 'MEDIUM'; assert calculate_urgency(200) == 'LOW'; assert calculate_priority_score('CRITICAL', 20, 5) >= 95; print('✓ Priority engine pricing and urgency rules verified')"
