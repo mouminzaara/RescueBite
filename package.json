@@ -1,0 +1,10 @@
+{
+  "name": "rescuebite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RescueBite Surplus Food Marketplace",
+  "scripts": {
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build"
+  }
+}
